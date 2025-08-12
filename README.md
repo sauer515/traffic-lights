@@ -1,42 +1,102 @@
-# Intelligent Traffic Lights – Java Simulation (CLI + JavaFX GUI)
+# Intelligent Traffic Light Simulation
 
-Command-line + GUI simulation of a 4-way intersection that adapts green phases to traffic intensity.
+## Overview
+This project simulates an **intelligent traffic light control system** for a four-way intersection (North, South, East, West).  
+The simulation dynamically adjusts green light cycles based on real-time traffic intensity, aiming to optimize vehicle throughput and reduce waiting time.
 
-## Build (Java 17 + Maven 3.9+)
-```bash
-mvn -q -DskipTests package
+The system supports:
+- **Batch mode** – execute a list of commands from a JSON file (`--f input.json output.json`)
+- **GUI mode** – JavaFX interface for interactive simulation
+
+---
+
+## Tech Stack
+- **Java 21** – core simulation logic
+- **JavaFX** – graphical user interface
+- **Maven** – build & dependency management
+- **JUnit 5** – unit testing
+- **GitHub Actions** – CI/CD integration
+
+---
+
+## Simulation Algorithm
+
+The simulation is based on a **Weighted Round Robin (WRR)** algorithm:
+
+1. **Traffic measurement**
+    - Each approach lane counts the number of vehicles waiting.
+    - These counts are used as *weights*.
+
+2. **Cycle allocation**
+    - More vehicles = longer green light duration for that road.
+    - Less congested roads get shorter green phases.
+
+3. **Single green light rule**
+    - Only one road has a green light at any given moment to avoid collisions.
+
+4. **Vehicle movement**
+    - When a road turns green, vehicles move forward and leave the intersection.
+    - In batch mode, vehicles are processed in discrete simulation steps.
+    - In GUI mode, their movement is visually animated along predefined paths.
+
+---
+
+## Simplifications & Limitations
+To keep the focus on traffic distribution logic:
+- **No yellow lights** – transitions are immediate from green to red.
+- **No turn handling logic** – vehicles are assumed to wait for the turn.
+- **No pedestrian crossing phases** – only vehicle flow is considered.
+- **No traffic sensor delays** – vehicle counts are updated instantly.
+
+---
+
+## Project Structure
+```
+src/main/java/app/
+  ├── model/         # Core simulation data models
+  ├── sched/    # Simulation control logic
+  ├── view/          # JavaFX GUI implementation
+  └── io/          # Helper classes (parsing, I/O, etc.)
 ```
 
-### CLI usage
-```bash
-java -jar target/traffic-lights-1.0.0.jar --f input.json output.json
-```
-If you run without `--f`, the **JavaFX GUI** starts.
+---
 
-### Run GUI directly
+## Running the Simulation
+
+### 1. GUI Mode (default)
 ```bash
-mvn -q -DskipTests package
-mvn javafx:run
+mvn clean install
+mvn exec:java -Dexec.mainClass="app.view.TrafficLightGUI"
 ```
 
-### Docker (CLI mode)
+### 2. Batch Mode
 ```bash
-docker build -t traffic-lights:1.0 .
-docker run --rm -v "$PWD"/samples:/data traffic-lights:1.0 --f /data/input.json /data/output.json
+mvn clean install
+java -jar target/traffic-lights.jar --f input.json output.json
 ```
 
-### Example I/O
-Input and output JSON match the format from the task statement (see `samples/` directory).
+Example `input.json`:
+```json
+{
+  "commands": [
+    { "type": "addVehicle", "vehicleId": "V1", "startRoad": "NORTH" },
+    { "type": "step" }
+  ]
+}
+```
 
-## Design summary
-- Safety: Only one axis is green at a time: **NS** (north+south) or **EW** (east+west).
-- Throughput per step: up to 2 vehicles (one per direction on the active axis).
-- Scheduler: Weighted round-robin with aging and optional hold to avoid flip-flopping.
-- Extensible: lanes, pedestrians, emergency preemption, green arrows, metrics.
+---
 
-## GUI
-- Shows queues for N/S/E/W, current green axis, simple lights and controls.
-- Buttons to add vehicles (random ids), perform single `Step`, or `Auto Run` (toggle).
+## Testing
+Run unit tests with:
+```bash
+mvn test
+```
 
-### GUI movement selection
-Each road panel now has a **Turn** selector (straight/left/right) that sets the vehicle's destination before adding it.
+---
+
+## CI/CD
+The project includes:
+- **GitHub Actions** workflow for build & test
+
+---
